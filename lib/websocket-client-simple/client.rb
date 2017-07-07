@@ -23,11 +23,9 @@ module WebSocket
             ctx = OpenSSL::SSL::SSLContext.new
             ctx.ssl_version = options[:ssl_version] || 'SSLv23'
             ctx.verify_mode = options[:verify_mode] || OpenSSL::SSL::VERIFY_NONE #use VERIFY_PEER for verification
-            cert_store = OpenSSL::X509::Store.new
-            cert_store.set_default_paths
             ctx.cert_store = cert_store
-            ctx.cert = OpenSSL::X509::Certificate.new(File.read(options[:cert_chain_file])) || nil
-            ctx.key = OpenSSL::PKey::RSA.new(File.read(options[:private_key_file])) || nil
+            ctx.cert = cert_chain_file(options[:cert_chain_file])
+            ctx.key = private_key_file(options[:private_key_file])
             @socket = ::OpenSSL::SSL::SSLSocket.new(@socket, ctx)
             @socket.connect
           end
@@ -95,6 +93,27 @@ module WebSocket
 
         def open?
           @handshake.finished? and !@closed
+        end
+
+        private
+
+        def cert_store
+          cert_store = OpenSSL::X509::Store.new
+          cert_store.set_default_paths
+        end
+
+        def cert_chain_file(cert_chain_file_path)
+          return unless cert_chain_file_path.nil?
+          raise "Certificate file not found" unless File.exists?(cert_chain_file_path)
+
+          OpenSSL::X509::Certificate.new(File.read(cert_chain_file_path))
+        end
+
+        def private_key_file(private_key_file_path)
+          return unless private_key_file_path.nil?
+          raise "Private Key file not found" unless File.exists?(private_key_file_path)
+
+          OpenSSL::X509::Certificate.new(File.read(private_key_file_path))
         end
 
       end
